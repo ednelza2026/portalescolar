@@ -1,0 +1,8 @@
+[dotenv@17.3.1] injecting env (3) from .env -- tip: ­ƒñû agentic secret storage: https://dotenvx.com/as2
+Tentando conectar com par├ómetros separados...
+User: neondb_owner
+Host: ep-billowing-art-acxui6hj-pooler.sa-east-1.aws.neon.tech
+Enviando query...
+FALHA NA CONEX├âO:
+Mensagem: password authentication failed for user 'neondb_owner'
+C├│digo: 28P01

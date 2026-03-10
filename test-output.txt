@@ -1,0 +1,19 @@
+[dotenv@17.3.1] injecting env (3) from .env -- tip: ­ƒöÉ prevent building .env in docker: https://dotenvx.com/prebuild
+DATABASE_URL encontrada: postgresql:****@ep-billowing-art-acxui6hj-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+Tentando conectar ao Neon...
+(node:20796) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+
+To prepare for this change:
+- If you want the current behavior, explicitly use 'sslmode=verify-full'
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FALHA NA CONEX├âO:
+Mensagem: password authentication failed for user 'neondb_owner'
+C├│digo: 28P01
+Stack: error: password authentication failed for user 'neondb_owner'
+    at E:\portalescola\portalescolar\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async testConnection (E:\portalescola\portalescolar\test-connection.ts:25:20)

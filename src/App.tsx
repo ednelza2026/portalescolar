@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   BookOpen,
   Newspaper,
@@ -79,6 +79,163 @@ const parseSponsorMedia = (sponsor: any): Sponsor => {
 };
 
 // --- Components ---
+
+const BannerSlideshow = ({ bannerSetting }: { bannerSetting: any }) => {
+  const [idx, setIdx] = useState(0);
+  
+  const bannerList = useMemo(() => {
+    try {
+      if (typeof bannerSetting !== 'string' || !bannerSetting) return ["https://picsum.photos/seed/school/1920/1080"];
+      if (bannerSetting.startsWith('[')) return JSON.parse(bannerSetting) as string[];
+      return [bannerSetting];
+    } catch { }
+    return ["https://picsum.photos/seed/school/1920/1080"];
+  }, [bannerSetting]);
+
+  useEffect(() => {
+    if (bannerList.length <= 1) return;
+    const t = setInterval(() => setIdx(i => (i + 1) % bannerList.length), 8000);
+    return () => clearInterval(t);
+  }, [bannerList.length]);
+
+  const current = bannerList[idx] || bannerList[0];
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.img
+        key={current}
+        src={current}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.6 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 1 }}
+        className="absolute inset-0 w-full h-full object-cover mix-blend-overlay"
+        referrerPolicy="no-referrer"
+      />
+    </AnimatePresence>
+  );
+};
+
+const VideoCard = ({ videoSetting, isAdmin, onSave }: { videoSetting: any, isAdmin: boolean, onSave: (list: string[]) => Promise<void> }) => {
+  const [vidIdx, setVidIdx] = useState(0);
+
+  const videoList = useMemo(() => {
+    try {
+      if (typeof videoSetting !== 'string' || !videoSetting) return [];
+      if (videoSetting.startsWith('[')) return JSON.parse(videoSetting) as string[];
+      return [videoSetting];
+    } catch { }
+    return [];
+  }, [videoSetting]);
+
+  const safeIdx = videoList.length ? Math.min(vidIdx, videoList.length - 1) : 0;
+  const current = videoList[safeIdx] ?? '';
+
+  const renderVideo = (v: string) => {
+    const ytMatch = v.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+    if (ytMatch) {
+      return (
+        <iframe
+          key={v}
+          src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&rel=0`}
+          className="absolute inset-0 w-full h-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          title="Vídeo da Escola"
+        />
+      );
+    }
+    return (
+      <video
+        key={v}
+        src={v}
+        className="absolute inset-0 w-full h-full object-cover"
+        controls
+        playsInline
+      />
+    );
+  };
+
+  return (
+    <div className="relative w-full rounded-2xl overflow-hidden shadow-2xl bg-black border-2 border-white/10 group flex-shrink-0" style={{ aspectRatio: '16/9' }}>
+      {videoList.length > 0 ? renderVideo(current) : (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 text-white/40 p-4 text-center">
+          <Play className="w-12 h-12 mb-3 text-white/20" />
+          <p className="text-xs font-bold uppercase tracking-widest">Vídeo da Escola</p>
+          <p className="text-[10px] mt-1">Configure no painel Admin</p>
+        </div>
+      )}
+
+      {videoList.length > 1 && (
+        <>
+          <button
+            onClick={() => setVidIdx(i => (i - 1 + videoList.length) % videoList.length)}
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/60 hover:bg-black/90 backdrop-blur text-white flex items-center justify-center transition-all shadow-lg"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setVidIdx(i => (i + 1) % videoList.length)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/60 hover:bg-black/90 backdrop-blur text-white flex items-center justify-center transition-all shadow-lg"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+          <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 z-20">
+            {videoList.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setVidIdx(i)}
+                className={`w-1.5 h-1.5 rounded-full transition-all ${i === safeIdx ? 'bg-white scale-125' : 'bg-white/40 hover:bg-white/70'}`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      {isAdmin && (
+        <div className="absolute top-2 right-2 z-30 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <label className="cursor-pointer p-1.5 bg-black/70 backdrop-blur text-white rounded-lg hover:bg-black/90 transition-colors" title="Adicionar vídeo">
+            <Plus className="w-3.5 h-3.5" />
+            <input type="file" className="hidden" accept="video/*" multiple onChange={async (e) => {
+              const files = Array.from(e.target.files || []);
+              const newUrls: string[] = [];
+              for (const file of files) {
+                const base64 = await new Promise<string>(resolve => {
+                  const reader = new FileReader();
+                  reader.onloadend = () => resolve(reader.result as string);
+                  reader.readAsDataURL(file);
+                });
+                newUrls.push(base64);
+              }
+              await onSave([...videoList, ...newUrls]);
+              setVidIdx(videoList.length + newUrls.length - 1);
+            }} />
+          </label>
+          {videoList.length > 0 && (
+            <button
+              title="Remover este vídeo"
+              onClick={async () => {
+                if (!confirm('Remover este vídeo?')) return;
+                const updated = videoList.filter((_, i) => i !== safeIdx);
+                await onSave(updated);
+                setVidIdx(Math.max(0, safeIdx - 1));
+              }}
+              className="p-1.5 bg-red-600/80 backdrop-blur text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {videoList.length > 1 && (
+        <div className="absolute top-2 left-2 z-20 px-2 py-0.5 bg-black/60 backdrop-blur text-white text-[10px] font-bold rounded-full">
+          {safeIdx + 1}/{videoList.length}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Navbar = ({ activeTab, setActiveTab, isAdmin, isSponsor, onLogout, settings, hasPendingPayments }: {
   activeTab: string,
@@ -632,7 +789,12 @@ export default function App() {
 
   useEffect(() => {
     fetchData();
-    recordAccess();
+    // Real-time access counter: only record once per session
+    const hasVisited = sessionStorage.getItem('hasVisited');
+    if (!hasVisited) {
+      recordAccess();
+      sessionStorage.setItem('hasVisited', 'true');
+    }
     fetchActiveSponsors();
   }, []);
 
@@ -678,7 +840,15 @@ export default function App() {
 
   const recordAccess = async () => {
     try {
-      await fetch('/api/access', { method: 'POST' });
+      // Small delay to ensure it's not a bot/pre-render
+      setTimeout(async () => {
+        const res = await fetch('/api/access', { method: 'POST' });
+        if (res.ok) {
+          // Update the local settings state with the new count
+          const newSettings = await (await fetch('/api/settings')).json();
+          setSettings(prev => ({ ...prev, access_count: newSettings.access_count }));
+        }
+      }, 2000);
     } catch (error) {
       console.error("Error recording access:", error);
     }
@@ -776,12 +946,23 @@ export default function App() {
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64 = reader.result as string;
+        let bannerList: string[] = [];
+        try {
+          const raw = settings.banner as string;
+          if (raw) {
+            bannerList = raw.startsWith('[') ? JSON.parse(raw) : [raw];
+          }
+        } catch { }
+
+        const updated = [...bannerList, base64];
+        const val = JSON.stringify(updated);
+        
         await fetch('/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key: 'banner', value: base64 })
+          body: JSON.stringify({ key: 'banner', value: val })
         });
-        setSettings(prev => ({ ...prev, banner: base64 }));
+        setSettings(prev => ({ ...prev, banner: val }));
       };
       reader.readAsDataURL(file);
     }
@@ -910,6 +1091,7 @@ export default function App() {
     window.open(url, '_blank');
   };
 
+  // Moved the loading check to just before the return to ensure all hooks are called consistently
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-50">
@@ -941,71 +1123,84 @@ export default function App() {
               className="space-y-8 pb-12"
             >
               {/* Hero Section */}
-              <div className="relative w-full overflow-hidden bg-slate-900 min-h-[500px] flex items-center pt-8 pb-12">
-                <img
-                  src={settings.banner || "https://picsum.photos/seed/school/1920/1080"}
-                  alt="Escola"
-                  className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-overlay"
-                  referrerPolicy="no-referrer"
-                />
+              <div className="relative w-full overflow-hidden bg-slate-900 min-h-[500px] flex items-center py-12">
+                {/* Banner Slideshow */}
+                <div className="absolute inset-0 z-0">
+                  <BannerSlideshow bannerSetting={settings.banner} />
+                </div>
+
+                <div className="absolute inset-0 bg-gradient-to-b from-[#101828]/60 via-transparent to-[#101828]/80 z-[1]" />
 
                 {isAdmin && (
-                  <label className="absolute top-4 right-4 z-20 p-2 md:p-3 bg-black/40 backdrop-blur-md text-white rounded-xl cursor-pointer shadow-lg hover:bg-black/60 transition-all flex items-center space-x-2 border border-white/20">
-                    <Camera className="w-4 h-4 md:w-5 h-5" />
-                    <span className="text-xs md:text-sm font-bold">Trocar Banner</span>
-                    <input type="file" className="hidden" onChange={handleBannerUpload} accept="image/*" />
-                  </label>
+                  <div className="absolute top-4 right-4 z-[30] flex gap-2">
+                    <label className="p-2 md:p-3 bg-white/10 backdrop-blur-md text-white rounded-xl cursor-pointer shadow-lg hover:bg-white/20 transition-all flex items-center space-x-2 border border-white/20">
+                      <Camera className="w-4 h-4 md:w-5 h-5" />
+                      <span className="text-xs md:text-sm font-bold">Adicionar Banner</span>
+                      <input type="file" className="hidden" onChange={handleBannerUpload} accept="image/*" />
+                    </label>
+                    {(() => {
+                      let list: string[] = [];
+                      try {
+                        const raw = settings.banner as string;
+                        if (raw && raw.startsWith('[')) list = JSON.parse(raw);
+                        else if (raw) list = [raw];
+                      } catch { }
+                      if (list.length > 0) {
+                        return (
+                          <button
+                            onClick={async () => {
+                              if (!confirm('Limpar todos os banners?')) return;
+                              await fetch('/api/settings', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ key: 'banner', value: '' })
+                              });
+                              setSettings(prev => ({ ...prev, banner: '' }));
+                            }}
+                            className="p-2 md:p-3 bg-red-600/40 backdrop-blur-md text-white rounded-xl shadow-lg hover:bg-red-600/60 transition-all flex items-center space-x-2 border border-white/20"
+                          >
+                            <Trash2 className="w-4 h-4 md:w-5 h-5" />
+                          </button>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
                 )}
 
-                <div className="relative z-10 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mt-12 md:mt-0">
-                  <div className="flex flex-col lg:flex-row gap-8 h-full items-stretch">
+                <div className="relative z-[10] w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+                  {/* Centralized Logo (Special Request) */}
+                  <div className="flex flex-col items-center mb-8">
+                    <motion.div 
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="w-32 h-32 md:w-48 md:h-48 rounded-full bg-white/10 backdrop-blur-xl border-4 border-white/20 flex items-center justify-center p-4 shadow-2xl mb-6"
+                    >
+                      {settings.logo ? (
+                        <img src={settings.logo} alt="Logo Central" className="w-full h-full object-contain filter drop-shadow-lg" />
+                      ) : (
+                        <BookOpen className="w-16 h-16 md:w-24 md:h-24 text-white/50" />
+                      )}
+                    </motion.div>
+                    <div className="text-center">
+                      <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase drop-shadow-2xl">
+                        {settings.portal_name || "Portal Escola"}
+                      </h1>
+                      <div className="w-24 h-2 bg-yellow-400 mx-auto mt-4 rounded-full" />
+                      <p className="text-lg md:text-xl font-bold text-slate-300 mt-4 uppercase tracking-[0.2em] opacity-80">
+                        {settings.school_name || "Ednelza Bezerra Trindade"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col lg:flex-row gap-8 h-full items-stretch mt-12">
 
                     {/* Video Carousel Section */}
-                    {(() => {
-                      // Parse videos list from settings
-                      let videoList: string[] = [];
-                      try {
-                        const raw = settings.school_videos as string;
-                        if (raw) {
-                          videoList = raw.startsWith('[') ? JSON.parse(raw) : [raw];
-                        }
-                        // Legacy: also include school_video if set
-                        if (!videoList.length && settings.school_video) {
-                          videoList = [settings.school_video as string];
-                        }
-                      } catch { }
-
-                      const VideoCard = () => {
-                        const [vidIdx, setVidIdx] = React.useState(0);
-                        const safeIdx = videoList.length ? Math.min(vidIdx, videoList.length - 1) : 0;
-                        const current = videoList[safeIdx] ?? '';
-
-                        const renderVideo = (v: string) => {
-                          const ytMatch = v.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
-                          if (ytMatch) {
-                            return (
-                              <iframe
-                                key={v}
-                                src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&rel=0`}
-                                className="absolute inset-0 w-full h-full"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                                title="Vídeo da Escola"
-                              />
-                            );
-                          }
-                          return (
-                            <video
-                              key={v}
-                              src={v}
-                              className="absolute inset-0 w-full h-full object-cover"
-                              controls
-                              playsInline
-                            />
-                          );
-                        };
-
-                        const saveVideos = async (list: string[]) => {
+                    <div className="w-full lg:w-1/3 xl:w-1/4 flex flex-col items-center lg:items-start gap-4">
+                      <VideoCard 
+                        videoSetting={settings.school_videos || settings.school_video} 
+                        isAdmin={isAdmin}
+                        onSave={async (list: string[]) => {
                           const val = JSON.stringify(list);
                           setSettings(prev => ({ ...prev, school_videos: val }));
                           await fetch('/api/settings', {
@@ -1013,105 +1208,13 @@ export default function App() {
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ key: 'school_videos', value: val })
                           });
-                        };
-
-                        return (
-                          <div className="relative w-full rounded-2xl overflow-hidden shadow-2xl bg-black border-2 border-white/10 group flex-shrink-0" style={{ aspectRatio: '16/9' }}>
-                            {/* Video */}
-                            {videoList.length > 0 ? renderVideo(current) : (
-                              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 text-white/40 p-4 text-center">
-                                <Play className="w-12 h-12 mb-3 text-white/20" />
-                                <p className="text-xs font-bold uppercase tracking-widest">Vídeo da Escola</p>
-                                <p className="text-[10px] mt-1">Configure no painel Admin</p>
-                              </div>
-                            )}
-
-                            {/* Prev / Next buttons (only if more than 1 video) */}
-                            {videoList.length > 1 && (
-                              <>
-                                <button
-                                  onClick={() => setVidIdx(i => (i - 1 + videoList.length) % videoList.length)}
-                                  className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/60 hover:bg-black/90 backdrop-blur text-white flex items-center justify-center transition-all shadow-lg"
-                                >
-                                  <ChevronLeft className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => setVidIdx(i => (i + 1) % videoList.length)}
-                                  className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/60 hover:bg-black/90 backdrop-blur text-white flex items-center justify-center transition-all shadow-lg"
-                                >
-                                  <ChevronRight className="w-4 h-4" />
-                                </button>
-
-                                {/* Dots */}
-                                <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 z-20">
-                                  {videoList.map((_, i) => (
-                                    <button
-                                      key={i}
-                                      onClick={() => setVidIdx(i)}
-                                      className={`w-1.5 h-1.5 rounded-full transition-all ${i === safeIdx ? 'bg-white scale-125' : 'bg-white/40 hover:bg-white/70'}`}
-                                    />
-                                  ))}
-                                </div>
-                              </>
-                            )}
-
-                            {/* Admin controls */}
-                            {isAdmin && (
-                              <div className="absolute top-2 right-2 z-30 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <label className="cursor-pointer p-1.5 bg-black/70 backdrop-blur text-white rounded-lg hover:bg-black/90 transition-colors" title="Adicionar vídeo">
-                                  <Plus className="w-3.5 h-3.5" />
-                                  <input type="file" className="hidden" accept="video/*" multiple onChange={async (e) => {
-                                    const files = Array.from(e.target.files || []);
-                                    const newUrls: string[] = [];
-                                    for (const file of files) {
-                                      await new Promise<void>(resolve => {
-                                        const reader = new FileReader();
-                                        reader.onloadend = () => { newUrls.push(reader.result as string); resolve(); };
-                                        reader.readAsDataURL(file);
-                                      });
-                                    }
-                                    const updated = [...videoList, ...newUrls];
-                                    await saveVideos(updated);
-                                    setVidIdx(updated.length - 1);
-                                  }} />
-                                </label>
-                                {videoList.length > 0 && (
-                                  <button
-                                    title="Remover este vídeo"
-                                    onClick={async () => {
-                                      if (!confirm('Remover este vídeo?')) return;
-                                      const updated = videoList.filter((_, i) => i !== safeIdx);
-                                      await saveVideos(updated);
-                                      setVidIdx(Math.max(0, safeIdx - 1));
-                                    }}
-                                    className="p-1.5 bg-red-600/80 backdrop-blur text-white rounded-lg hover:bg-red-700 transition-colors"
-                                  >
-                                    <X className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                              </div>
-                            )}
-
-                            {/* Video counter badge */}
-                            {videoList.length > 1 && (
-                              <div className="absolute top-2 left-2 z-20 px-2 py-0.5 bg-black/60 backdrop-blur text-white text-[10px] font-bold rounded-full">
-                                {safeIdx + 1}/{videoList.length}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      };
-
-                      return (
-                        <div className="w-full lg:w-1/3 xl:w-1/4 flex flex-col items-center lg:items-start gap-4">
-                          <VideoCard />
-                          {/* Sponsor Slider below video */}
-                          <div className="hidden lg:block w-full">
-                            <SponsorSlider sponsors={activeSponsors} />
-                          </div>
-                        </div>
-                      );
-                    })()}
+                        }}
+                      />
+                      {/* Sponsor Slider below video */}
+                      <div className="hidden lg:block w-full">
+                        <SponsorSlider sponsors={activeSponsors} />
+                      </div>
+                    </div>
 
 
                     {/* News Grid Area */}
@@ -1868,13 +1971,43 @@ export default function App() {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-3">Banner Principal (Início)</label>
+                        <label className="block text-sm font-semibold text-slate-700 mb-3">Banners em Slideshow (Início)</label>
                         <div className="space-y-3">
-                          <div className="w-full h-24 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden">
-                            {settings.banner ? <img src={settings.banner} className="w-full h-full object-cover" /> : <div className="text-slate-300 text-xs">Sem banner personalizado</div>}
+                          <div className="grid grid-cols-2 gap-2">
+                            {(() => {
+                              let list: string[] = [];
+                              try {
+                                const raw = settings.banner as string;
+                                if (raw && raw.startsWith('[')) list = JSON.parse(raw);
+                                else if (raw) list = [raw];
+                              } catch { }
+                              
+                              return list.map((b, i) => (
+                                <div key={i} className="relative aspect-video rounded-xl bg-slate-50 border border-slate-100 overflow-hidden group">
+                                  <img src={b} className="w-full h-full object-cover" />
+                                  <button 
+                                    onClick={async () => {
+                                      if (!confirm("Remover este banner?")) return;
+                                      const updated = list.filter((_, idx) => idx !== i);
+                                      const val = JSON.stringify(updated);
+                                      await fetch('/api/settings', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ key: 'banner', value: val })
+                                      });
+                                      setSettings(prev => ({ ...prev, banner: val }));
+                                    }}
+                                    className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ));
+                            })()}
                           </div>
                           <label className="block w-full px-4 py-2 bg-slate-800 text-white text-center rounded-lg text-sm font-bold cursor-pointer hover:bg-slate-900 transition-colors">
-                            Alterar Banner da Escola
+                            <Plus className="w-4 h-4 inline mr-2" />
+                            Adicionar Banner ao Slideshow
                             <input type="file" className="hidden" onChange={handleBannerUpload} accept="image/*" />
                           </label>
                         </div>
