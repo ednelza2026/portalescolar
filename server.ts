@@ -1,5 +1,4 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import { Pool } from "pg";
 import path from "path";
 import { GoogleGenAI } from "@google/genai";
@@ -111,7 +110,7 @@ app.use(async (req, res, next) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(process.env.PORT || '3000', 10);
 
   // API Routes
   app.get("/api/news", async (req, res) => {
@@ -388,9 +387,9 @@ const PORT = process.env.PORT || 3000;
     }
   });
 
-  // Vite middleware for development
   if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
     (async () => {
+      const { createServer: createViteServer } = await import("vite");
       const vite = await createViteServer({
         server: { middlewareMode: true },
         appType: "spa",
