@@ -42,6 +42,7 @@ export interface SchoolSettings {
   access_count?: string;
   school_video?: string;
   school_videos?: string;
+  custom_qr_code?: string;
 }
 
 export interface Sponsor {

@@ -37,7 +37,7 @@ import {
   Play,
   Edit2
 } from "lucide-react";
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import { SchoolEvent, News, Evaluation, Sponsor, SchoolSettings } from "./types";
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -114,7 +114,7 @@ const BannerSlideshow = ({ bannerSetting }: { bannerSetting: any }) => {
         animate={{ opacity: 0.6 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 1 }}
-        className="absolute inset-0 w-full h-full object-cover mix-blend-overlay"
+        className="absolute inset-0 w-full h-full object-contain mix-blend-overlay"
         referrerPolicy="no-referrer"
       />
     </AnimatePresence>
@@ -1281,7 +1281,7 @@ export default function App() {
                       <img
                         src={item.image_url || "https://picsum.photos/seed/news/800/600"}
                         alt={item.title}
-                        className="w-full h-full object-cover transition-transform hover:scale-105 duration-500"
+                        className="w-full h-full object-contain transition-transform hover:scale-105 duration-500"
                         referrerPolicy="no-referrer"
                       />
                     </div>
@@ -2057,33 +2057,110 @@ export default function App() {
                       </div>
 
                       <div className="pt-4 border-t border-slate-100">
+                        <label className="block text-sm font-semibold text-slate-700 mb-3">QR Code Personalizado para PDF (Opcional)</label>
+                        <div className="flex items-center space-x-4 mb-6">
+                          <div className="w-24 h-24 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden">
+                            {settings.custom_qr_code ? <img src={settings.custom_qr_code} className="w-full h-full object-contain" /> : <QrCodeIcon className="text-slate-300 w-8 h-8" />}
+                          </div>
+                          <div className="flex-grow flex flex-col space-y-2">
+                            <label className="px-4 py-2 bg-slate-100 text-slate-700 text-center rounded-lg text-sm font-bold cursor-pointer hover:bg-slate-200 transition-colors">
+                              Fazer Upload do QR Code
+                              <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onloadend = async () => {
+                                    const val = reader.result as string;
+                                    setSettings(prev => ({ ...prev, custom_qr_code: val }));
+                                    await fetch('/api/settings', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ key: 'custom_qr_code', value: val })
+                                    });
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }} />
+                            </label>
+                            {settings.custom_qr_code && (
+                              <button 
+                                onClick={async () => {
+                                  setSettings(prev => ({ ...prev, custom_qr_code: '' }));
+                                  await fetch('/api/settings', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ key: 'custom_qr_code', value: '' })
+                                  });
+                                }}
+                                className="px-4 py-2 bg-red-50 text-red-600 text-center rounded-lg text-sm font-bold hover:bg-red-100 transition-colors"
+                              >
+                                Remover
+                              </button>
+                            )}
+                          </div>
+                        </div>
                         <button
                           onClick={() => {
                             const printWindow = window.open('', '_blank');
                             if (printWindow) {
+                              const customQrUrl = settings.custom_qr_code;
                               const qrCanvas = document.getElementById('admin-qr-code')?.querySelector('canvas');
-                              const qrDataUrl = qrCanvas?.toDataURL() || "";
+                              const realQrDataUrl = qrCanvas?.toDataURL() || "";
                               
                               printWindow.document.write(`
                                 <html>
                                   <head>
                                     <title>QR Code - ${settings.portal_name || 'Portal Escola'}</title>
                                     <style>
-                                      body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; }
+                                      body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; margin: 0; background: #fff; }
                                       .logo { width: 100px; height: 100px; object-fit: contain; margin-bottom: 20px; }
                                       h1 { font-size: 24px; margin-bottom: 10px; }
-                                      p { font-size: 16px; color: #666; margin-bottom: 30px; }
-                                      .qr-container { padding: 20px; border: 2px solid #eee; border-radius: 20px; }
+                                      p { font-size: 16px; color: #666; margin-bottom: 30px; max-width: 80%; }
+                                      .qr-container { padding: 20px; border: 2px solid #eee; border-radius: 20px; background: white; }
                                       img.qr { width: 300px; height: 300px; }
+                                      
+                                      /* Estilos para quando tem imagem personalizada (pôster) */
+                                      .poster-wrapper {
+                                        position: relative;
+                                        display: inline-block;
+                                        max-height: 98vh;
+                                        max-width: 100%;
+                                      }
+                                      .poster-img {
+                                        max-height: 98vh;
+                                        max-width: 100%;
+                                        object-fit: contain;
+                                      }
+                                      .real-qr-overlay {
+                                        position: absolute;
+                                        top: 52%;
+                                        left: 50%;
+                                        transform: translate(-50%, -50%);
+                                        background: transparent;
+                                      }
+                                      .real-qr-overlay img {
+                                        width: 280px;
+                                        height: 280px;
+                                        display: block;
+                                      }
                                     </style>
                                   </head>
                                   <body onload="window.print()">
-                                    ${settings.logo ? `<img src="${settings.logo}" class="logo" />` : ''}
-                                    <h1>${settings.portal_name || 'Portal Escola'}</h1>
-                                    <p>Acesse nosso portal escolar apontando a câmera do seu celular para o código abaixo:</p>
-                                    <div class="qr-container">
-                                      <img src="${qrDataUrl}" class="qr" />
-                                    </div>
+                                    ${customQrUrl ? `
+                                      <div class="poster-wrapper">
+                                        <img src="${customQrUrl}" class="poster-img" />
+                                        <div class="real-qr-overlay">
+                                          <img src="${realQrDataUrl}" />
+                                        </div>
+                                      </div>
+                                    ` : `
+                                      ${settings.logo ? `<img src="${settings.logo}" class="logo" />` : ''}
+                                      <h1>${settings.portal_name || 'Portal Escola'}</h1>
+                                      <p>Acesse nosso portal escolar apontando a câmera do seu celular para o código abaixo:</p>
+                                      <div class="qr-container">
+                                        <img src="${realQrDataUrl}" class="qr" />
+                                      </div>
+                                    `}
                                   </body>
                                 </html>
                               `);
@@ -2096,7 +2173,7 @@ export default function App() {
                           Gerar QR Code do Portal (PDF/Imprimir)
                         </button>
                         <div id="admin-qr-code" className="hidden">
-                          <QRCodeSVG value={window.location.origin} size={300} />
+                          <QRCodeCanvas value={window.location.origin} size={350} bgColor="transparent" fgColor="#000000" />
                         </div>
                       </div>
                     </div>
@@ -2388,7 +2465,7 @@ export default function App() {
       </main>
 
       <footer className="bg-slate-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-12">
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-12">
           <div>
             <div className="flex items-center space-x-3 mb-6">
               <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center overflow-hidden">
@@ -2585,13 +2662,30 @@ const StarRatingComponent = ({ inputId }: { inputId: string }) => {
 
 const HeroNewsMural = ({ news, events, setActiveTab }: { news: News[], events: SchoolEvent[], setActiveTab: (tab: string) => void }) => {
   const [index, setIndex] = useState(0);
-  
+  const [orientations, setOrientations] = useState<Record<string, 'portrait' | 'landscape'>>({});
+
   const muralItems = useMemo(() => {
     return [
       ...news.map(n => ({ ...n, type: 'news' as const, description: n.content })),
       ...events.filter(e => e.image_url).map(e => ({ ...e, type: 'event' as const }))
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [news, events]);
+
+  useEffect(() => {
+    muralItems.forEach(item => {
+      if (!item.image_url) return;
+      const key = item.id + item.type;
+      if (orientations[key]) return;
+      const img = new Image();
+      img.onload = () => {
+        setOrientations(prev => ({
+          ...prev,
+          [key]: img.naturalHeight > img.naturalWidth ? 'portrait' : 'landscape'
+        }));
+      };
+      img.src = item.image_url;
+    });
+  }, [muralItems]);
 
   useEffect(() => {
     if (muralItems.length <= 3) return;
@@ -2612,84 +2706,73 @@ const HeroNewsMural = ({ news, events, setActiveTab }: { news: News[], events: S
     return (
       <div className="h-full flex flex-col items-center justify-center text-white/50 border-2 border-dashed border-white/20 rounded-3xl p-8">
         <Newspaper className="w-12 h-12 mb-4 opacity-50" />
-        <p className="text-center text-sm">Cadastre as notícias e eventos no painel Admin para exibir o mural.</p>
+        <p className="text-center text-sm">Cadastre as noticias e eventos no painel Admin para exibir o mural.</p>
       </div>
     );
   }
 
   return (
-    <div className={cn(
-      "grid gap-4 h-[500px] md:h-[600px] xl:h-[500px]",
-      muralItems.length === 1 ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
-    )}>
+    <div className="w-full">
       <AnimatePresence mode="wait">
-        <motion.div
-          key={displayItems[0]?.id + displayItems[0]?.type}
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 20 }}
-          className="relative rounded-2xl overflow-hidden cursor-pointer group shadow-2xl"
-          onClick={() => setActiveTab(displayItems[0]?.type === 'news' ? 'noticias' : 'eventos')}
-        >
-          <img src={displayItems[0]?.image_url || "https://picsum.photos/seed/news1/800/600"} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" referrerPolicy="no-referrer" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
-          <div className="absolute top-4 left-4">
-            <span className={cn(
-              "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-white shadow-lg",
-              displayItems[0]?.type === 'news' ? "bg-red-600" : "bg-blue-600"
-            )}>
-              {displayItems[0]?.type === 'news' ? "Notícia" : "Evento"}
-            </span>
-          </div>
-          <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full">
-            <div className="w-12 h-1 bg-red-500 mb-4 rounded-full"></div>
-            <h3 className="text-xl md:text-2xl lg:text-3xl font-bold text-white leading-tight mb-2 drop-shadow-md">
-              {displayItems[0]?.title}
-            </h3>
-            <div className="text-white/80 text-sm md:text-base line-clamp-2 md:line-clamp-3 prose prose-invert prose-sm">
-                <Markdown>{displayItems[0]?.description || ''}</Markdown>
-            </div>
-          </div>
-        </motion.div>
-      </AnimatePresence>
-
-      {muralItems.length > 1 && (
-        <div className="flex flex-col gap-4 h-full">
-          <AnimatePresence mode="popLayout">
-            {displayItems.slice(1, 3).map((n, i) => (
+        <div key={index} className="flex flex-wrap gap-4">
+          {displayItems.map((item, i) => {
+            const key = item.id + item.type;
+            const isPortrait = orientations[key] === 'portrait';
+            const isLarge = i === 0;
+            let wrapperClass = '';
+            if (isPortrait) {
+              wrapperClass = isLarge
+                ? 'flex-shrink-0 w-full sm:w-[47%] lg:w-[28%]'
+                : 'flex-shrink-0 w-[45%] lg:w-[20%]';
+            } else {
+              wrapperClass = isLarge
+                ? 'flex-shrink-0 w-full lg:w-[62%]'
+                : 'flex-shrink-0 w-full sm:w-[47%] lg:w-[34%]';
+            }
+            const aspectClass = isPortrait ? 'aspect-[3/4]' : 'aspect-video';
+            return (
               <motion.div
-                key={n.id + n.type}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ delay: i * 0.1 }}
-                className="relative flex-1 rounded-2xl overflow-hidden cursor-pointer group shadow-2xl"
-                onClick={() => setActiveTab(n.type === 'news' ? 'noticias' : 'eventos')}
+                key={key}
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{ duration: 0.4, delay: i * 0.08 }}
+                className={cn(wrapperClass)}
+                onClick={() => setActiveTab(item.type === 'news' ? 'noticias' : 'eventos')}
               >
-                <img src={n.image_url || `https://picsum.photos/seed/item${i}/800/600`} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" referrerPolicy="no-referrer" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
-                <div className="absolute top-3 left-3">
-                  <span className={cn(
-                    "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider text-white shadow-md",
-                    n.type === 'news' ? "bg-red-600" : "bg-blue-600"
-                  )}>
-                    {n.type === 'news' ? "Notícia" : "Evento"}
-                  </span>
-                </div>
-                <div className="absolute bottom-0 left-0 p-5 md:p-6 w-full">
-                  <div className="w-10 h-1 bg-red-500 mb-3 rounded-full"></div>
-                  <h3 className="text-lg md:text-xl font-bold text-white leading-tight mb-1 drop-shadow-md">
-                    {n.title}
-                  </h3>
-                  <div className="text-white/80 text-xs md:text-sm line-clamp-2 prose prose-invert prose-sm">
-                    <Markdown>{n.description || ''}</Markdown>
+                <div className={cn("relative rounded-2xl overflow-hidden cursor-pointer group shadow-2xl", aspectClass)}>
+                  <img
+                    src={item.image_url || `https://picsum.photos/seed/${key}/800/600`}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                  <div className="absolute top-3 left-3">
+                    <span className={cn(
+                      "rounded-full font-black uppercase tracking-wider text-white shadow-md",
+                      isLarge ? "text-[10px] px-3 py-1" : "text-[8px] px-2 py-0.5",
+                      item.type === 'news' ? "bg-red-600" : "bg-blue-600"
+                    )}>
+                      {item.type === 'news' ? "Noticia" : "Evento"}
+                    </span>
+                  </div>
+                  <div className={cn("absolute bottom-0 left-0 w-full", isLarge ? "p-6 md:p-8" : "p-4 md:p-5")}>
+                    <div className={cn("bg-red-500 mb-2 rounded-full", isLarge ? "w-12 h-1" : "w-8 h-0.5")} />
+                    <h3 className={cn("font-bold text-white leading-tight drop-shadow-md", isLarge ? "text-xl md:text-2xl lg:text-3xl mb-2" : "text-sm md:text-base mb-1")}>
+                      {item.title}
+                    </h3>
+                    {isLarge && (
+                      <div className="text-white/80 text-sm md:text-base line-clamp-2 prose prose-invert prose-sm">
+                        <Markdown>{item.description || ''}</Markdown>
+                      </div>
+                    )}
                   </div>
                 </div>
               </motion.div>
-            ))}
-          </AnimatePresence>
+            );
+          })}
         </div>
-      )}
+      </AnimatePresence>
     </div>
   );
 };
