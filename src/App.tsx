@@ -1168,35 +1168,13 @@ export default function App() {
                   </div>
                 )}
 
-                <div className="relative z-[10] w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-                  {/* Centralized Logo (Special Request) */}
-                  <div className="flex flex-col items-center mb-8">
-                    <motion.div 
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="w-32 h-32 md:w-48 md:h-48 rounded-full bg-white/10 backdrop-blur-xl border-4 border-white/20 flex items-center justify-center p-4 shadow-2xl mb-6"
-                    >
-                      {settings.logo ? (
-                        <img src={settings.logo} alt="Logo Central" className="w-full h-full object-contain filter drop-shadow-lg" />
-                      ) : (
-                        <BookOpen className="w-16 h-16 md:w-24 md:h-24 text-white/50" />
-                      )}
-                    </motion.div>
-                    <div className="text-center">
-                      <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase drop-shadow-2xl">
-                        {settings.portal_name || "Portal Escola"}
-                      </h1>
-                      <div className="w-24 h-2 bg-yellow-400 mx-auto mt-4 rounded-full" />
-                      <p className="text-lg md:text-xl font-bold text-slate-300 mt-4 uppercase tracking-[0.2em] opacity-80">
-                        {settings.school_name || "Ednelza Bezerra Trindade"}
-                      </p>
-                    </div>
-                  </div>
+                <div className="relative z-[10] w-full max-w-[1750px] lg:ml-0 lg:pl-16 px-4 sm:px-6 lg:pr-8">
+                  {/* Removed portal and school name text to free up space for cards */}
 
-                  <div className="flex flex-col lg:flex-row gap-8 h-full items-stretch mt-12">
+                  <div className="flex flex-col lg:flex-row gap-6 h-full items-stretch mt-4">
 
                     {/* Video Carousel Section */}
-                    <div className="w-full lg:w-1/3 xl:w-1/4 flex flex-col items-center lg:items-start gap-4">
+                    <div className="w-full lg:w-[35%] xl:w-[30%] flex flex-col items-center lg:items-start gap-4">
                       <VideoCard 
                         videoSetting={settings.school_videos || settings.school_video} 
                         isAdmin={isAdmin}
