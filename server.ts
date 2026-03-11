@@ -34,7 +34,8 @@ async function initDb() {
       id SERIAL PRIMARY KEY,
       title TEXT,
       description TEXT,
-      date TEXT
+      date TEXT,
+      image_url TEXT
     );
 
     CREATE TABLE IF NOT EXISTS evaluations (
@@ -84,6 +85,13 @@ async function initDb() {
   const { rows: accessCount } = await pool.query("SELECT * FROM settings WHERE key = $1", ["access_count"]);
   if (accessCount.length === 0) {
     await pool.query("INSERT INTO settings (key, value) VALUES ($1, $2)", ["access_count", "0"]);
+  }
+
+  // Column migration for events
+  try {
+    await pool.query("ALTER TABLE events ADD COLUMN IF NOT EXISTS image_url TEXT");
+  } catch (e) {
+    console.log("Migration (events image_url) skipped or failed:", (e as Error).message);
   }
 }
 
@@ -137,8 +145,8 @@ async function startServer() {
 
   app.post("/api/events", async (req, res) => {
     try {
-      const { title, description, date } = req.body;
-      const { rows } = await pool.query("INSERT INTO events (title, description, date) VALUES ($1, $2, $3) RETURNING id", [title, description, date]);
+      const { title, description, date, image_url } = req.body;
+      const { rows } = await pool.query("INSERT INTO events (title, description, date, image_url) VALUES ($1, $2, $3, $4) RETURNING id", [title, description, date, image_url]);
       res.json({ id: rows[0].id });
     } catch (e) { res.status(500).json({ error: (e as Error).message }); }
   });

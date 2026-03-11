@@ -23,6 +23,9 @@ import {
   AlertCircle,
   CheckCircle2,
   FileText,
+  Clock,
+  Info,
+  QrCode as QrCodeIcon,
   MessageSquare,
   Handshake,
   CreditCard,
@@ -33,7 +36,9 @@ import {
   FileDown,
   Play,
   Edit2
-} from 'lucide-react';
+} from "lucide-react";
+import { QRCodeSVG } from 'qrcode.react';
+import { SchoolEvent, News, Evaluation, Sponsor } from "./types";
 import { motion, AnimatePresence } from 'motion/react';
 import {
   BarChart,
@@ -1195,62 +1200,9 @@ export default function App() {
                     </div>
 
 
-                    {/* News Grid Area */}
+                    {/* News/Events Mural Area */}
                     <div className="w-full lg:w-2/3 xl:w-3/4">
-                      {news.length >= 1 ? (
-                        <div className={cn(
-                          "grid gap-4 h-[500px] md:h-[600px] xl:h-[500px]",
-                          news.length === 1 ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
-                        )}>
-                          {/* Main Left Card */}
-                          <div
-                            className="relative rounded-2xl overflow-hidden cursor-pointer group shadow-2xl"
-                            onClick={() => setActiveTab('noticias')}
-                          >
-                            <img src={news[0]?.image_url || "https://picsum.photos/seed/news1/800/600"} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" referrerPolicy="no-referrer" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
-                            <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full">
-                              <div className="w-12 h-1 bg-red-500 mb-4 rounded-full"></div>
-                              <h3 className="text-xl md:text-2xl lg:text-3xl font-bold text-white leading-tight mb-2 drop-shadow-md">
-                                {news[0]?.title}
-                              </h3>
-                              <p className="text-white/80 text-sm md:text-base line-clamp-2 md:line-clamp-3">
-                                {news[0]?.content}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Right Column Stack */}
-                          {news.length > 1 && (
-                            <div className="flex flex-col gap-4 h-full">
-                              {news.slice(1, 3).map((n, i) => (
-                                <div
-                                  key={i}
-                                  className="relative flex-1 rounded-2xl overflow-hidden cursor-pointer group shadow-2xl"
-                                  onClick={() => setActiveTab('noticias')}
-                                >
-                                  <img src={n.image_url || `https://picsum.photos/seed/news${i + 2}/800/600`} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" referrerPolicy="no-referrer" />
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
-                                  <div className="absolute bottom-0 left-0 p-5 md:p-6 w-full">
-                                    <div className="w-10 h-1 bg-red-500 mb-3 rounded-full"></div>
-                                    <h3 className="text-lg md:text-xl font-bold text-white leading-tight mb-1 drop-shadow-md">
-                                      {n.title}
-                                    </h3>
-                                    <p className="text-white/80 text-xs md:text-sm line-clamp-2">
-                                      {n.content}
-                                    </p>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-white/50 border-2 border-dashed border-white/20 rounded-3xl p-8">
-                          <Newspaper className="w-12 h-12 mb-4 opacity-50" />
-                          <p className="text-center">Cadastre as notícias e eventos no painel Admin para exibir o mural.</p>
-                        </div>
-                      )}
+                      <HeroNewsMural news={news} events={events} setActiveTab={setActiveTab} />
                     </div>
                   </div>
                 </div>
@@ -1389,13 +1341,19 @@ export default function App() {
               <div className="space-y-4">
                 {events.length > 0 ? events.map((event) => (
                   <div key={event.id} className="bg-white p-6 rounded-2xl card-shadow border border-slate-100 flex items-center space-x-6">
-                    <div className="flex-shrink-0 w-16 h-16 bg-school-blue/10 rounded-2xl flex flex-col items-center justify-center text-school-blue">
-                      <span className="text-xs font-bold uppercase">{new Date(event.date).toLocaleDateString('pt-BR', { month: 'short' })}</span>
-                      <span className="text-2xl font-bold leading-none">{new Date(event.date).getDate()}</span>
+                    <div className="flex-shrink-0 w-16 h-16 bg-school-blue/10 rounded-2xl flex flex-col items-center justify-center text-school-blue overflow-hidden">
+                      {event.image_url ? (
+                        <img src={event.image_url} className="w-full h-full object-cover" />
+                      ) : (
+                        <>
+                          <span className="text-xs font-bold uppercase">{new Date(event.date).toLocaleDateString('pt-BR', { month: 'short' })}</span>
+                          <span className="text-2xl font-bold leading-none">{new Date(event.date).getDate()}</span>
+                        </>
+                      )}
                     </div>
                     <div className="flex-grow">
                       <h3 className="font-bold text-lg text-slate-900">{event.title}</h3>
-                      <p className="text-slate-500 text-sm">{event.description}</p>
+                      <p className="text-slate-500 text-sm line-clamp-2">{event.description}</p>
                     </div>
                     {isAdmin && (
                       <button
@@ -1887,49 +1845,90 @@ export default function App() {
                     </form>
                   </div>
 
-                  <div className="bg-white p-8 rounded-3xl card-shadow border border-slate-100">
-                    <h3 className="text-xl font-bold mb-6 flex items-center">
-                      <Calendar className="w-5 h-5 mr-2 text-school-green" />
-                      Criar Novo Evento
-                    </h3>
-                    <form
-                      className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                      onSubmit={async (e) => {
-                        e.preventDefault();
-                        const form = e.currentTarget;
-                        const formData = new FormData(form);
-                        const data = {
-                          title: formData.get('title'),
-                          description: formData.get('description'),
-                          date: formData.get('date')
-                        };
-                        try {
-                          const res = await fetch('/api/events', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(data)
-                          });
-                          if (res.ok) {
-                            alert("Evento criado com sucesso!");
-                            form.reset();
-                            fetchData();
-                          } else {
-                            const err = await res.json();
-                            alert("Erro ao criar evento: " + (err.error || "Erro desconhecido"));
+                    <div className="bg-white p-8 rounded-3xl card-shadow border border-slate-100">
+                      <h3 className="text-xl font-bold mb-6 flex items-center">
+                        <Calendar className="w-5 h-5 mr-2 text-school-green" />
+                        Criar Novo Evento
+                      </h3>
+                      <form
+                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                        onSubmit={async (e) => {
+                          e.preventDefault();
+                          const form = e.currentTarget;
+                          const formData = new FormData(form);
+                          const imgFile = (document.getElementById('event-image-input') as HTMLInputElement).files?.[0];
+                          
+                          let image_url = "";
+                          if (imgFile) {
+                            image_url = await new Promise((res) => {
+                              const reader = new FileReader();
+                              reader.onloadend = () => res(reader.result as string);
+                              reader.readAsDataURL(imgFile);
+                            });
                           }
-                        } catch (error) {
-                          alert("Erro de conexão ao criar evento.");
-                        }
-                      }}
-                    >
-                      <input name="title" required placeholder="Título do Evento" className="md:col-span-2 w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-school-blue outline-none" />
-                      <input name="date" type="date" required className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-school-blue outline-none" />
-                      <input name="description" required placeholder="Breve descrição" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-school-blue outline-none" />
-                      <button type="submit" className="md:col-span-2 w-full py-3 bg-school-green text-white rounded-xl font-bold hover:bg-green-700 transition-colors">
-                        Criar Evento
-                      </button>
-                    </form>
-                  </div>
+
+                          const data = {
+                            title: formData.get('title'),
+                            description: formData.get('description'),
+                            date: formData.get('date'),
+                            image_url
+                          };
+                          try {
+                            const res = await fetch('/api/events', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify(data)
+                            });
+                            if (res.ok) {
+                              alert("Evento criado com sucesso!");
+                              form.reset();
+                              const preview = document.getElementById('event-image-preview') as HTMLImageElement;
+                              if (preview) { preview.src = ''; preview.classList.add('hidden'); }
+                              fetchData();
+                            } else {
+                              const err = await res.json();
+                              alert("Erro ao criar evento: " + (err.error || "Erro desconhecido"));
+                            }
+                          } catch (error) {
+                            alert("Erro de conexão ao criar evento.");
+                          }
+                        }}
+                      >
+                        <input name="title" required placeholder="Título do Evento" className="md:col-span-2 w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-school-blue outline-none" />
+                        <div className="md:col-span-2 space-y-2">
+                          <label className="text-xs font-bold text-slate-500 uppercase">Imagem do Evento</label>
+                          <div className="flex items-center gap-4">
+                            <label className="flex-grow relative h-32 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:border-school-green hover:bg-green-50 transition-all overflow-hidden flex flex-col items-center justify-center text-slate-400">
+                              <Camera className="w-6 h-6 mb-1" />
+                              <span className="text-[10px] font-bold">Upload Foto</span>
+                              <img id="event-image-preview" className="hidden absolute inset-0 w-full h-full object-cover" />
+                              <input
+                                id="event-image-input"
+                                type="file"
+                                className="hidden"
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => {
+                                      const preview = document.getElementById('event-image-preview') as HTMLImageElement;
+                                      if (preview) { preview.src = reader.result as string; preview.classList.remove('hidden'); }
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                }}
+                              />
+                            </label>
+                          </div>
+                        </div>
+                        <input name="date" type="date" required className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-school-blue outline-none" />
+                        <input name="description" required placeholder="Breve descrição" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-school-blue outline-none" />
+                        <button type="submit" className="md:col-span-2 w-full py-3 bg-school-green text-white rounded-xl font-bold hover:bg-green-700 transition-colors">
+                          Criar Evento
+                        </button>
+                      </form>
+                    </div>
                 </div>
 
                 {/* Recent Feedback & Settings */}
@@ -2055,6 +2054,50 @@ export default function App() {
                             });
                           }}
                         />
+                      </div>
+
+                      <div className="pt-4 border-t border-slate-100">
+                        <button
+                          onClick={() => {
+                            const printWindow = window.open('', '_blank');
+                            if (printWindow) {
+                              const qrCanvas = document.getElementById('admin-qr-code')?.querySelector('canvas');
+                              const qrDataUrl = qrCanvas?.toDataURL() || "";
+                              
+                              printWindow.document.write(`
+                                <html>
+                                  <head>
+                                    <title>QR Code - ${settings.portal_name || 'Portal Escola'}</title>
+                                    <style>
+                                      body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; }
+                                      .logo { width: 100px; height: 100px; object-fit: contain; margin-bottom: 20px; }
+                                      h1 { font-size: 24px; margin-bottom: 10px; }
+                                      p { font-size: 16px; color: #666; margin-bottom: 30px; }
+                                      .qr-container { padding: 20px; border: 2px solid #eee; border-radius: 20px; }
+                                      img.qr { width: 300px; height: 300px; }
+                                    </style>
+                                  </head>
+                                  <body onload="window.print()">
+                                    ${settings.logo ? `<img src="${settings.logo}" class="logo" />` : ''}
+                                    <h1>${settings.portal_name || 'Portal Escola'}</h1>
+                                    <p>Acesse nosso portal escolar apontando a câmera do seu celular para o código abaixo:</p>
+                                    <div class="qr-container">
+                                      <img src="${qrDataUrl}" class="qr" />
+                                    </div>
+                                  </body>
+                                </html>
+                              `);
+                              printWindow.document.close();
+                            }
+                          }}
+                          className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold flex items-center justify-center hover:bg-black transition-all shadow-lg"
+                        >
+                          <QrCodeIcon className="w-5 h-5 mr-3" />
+                          Gerar QR Code do Portal (PDF/Imprimir)
+                        </button>
+                        <div id="admin-qr-code" className="hidden">
+                          <QRCodeSVG value={window.location.origin} size={300} />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2365,6 +2408,16 @@ export default function App() {
             </div>
           </div>
           <div>
+            <h4 className="font-bold mb-6 flex items-center">
+              <QrCodeIcon className="w-4 h-4 mr-2 text-school-blue" />
+              Acesse pelo Celular
+            </h4>
+            <div className="bg-white p-3 rounded-2xl w-fit shadow-lg shadow-black/20">
+              <QRCodeSVG value={window.location.href} size={100} />
+            </div>
+            <p className="text-[10px] text-slate-500 mt-2 uppercase tracking-widest font-bold">Link rápido do App</p>
+          </div>
+          <div>
             <h4 className="font-bold mb-6">Links Rápidos</h4>
             <ul className="space-y-3 text-slate-400 text-sm">
               <li><button onClick={() => setActiveTab('inicio')} className="hover:text-white transition-colors">Início</button></li>
@@ -2528,4 +2581,115 @@ const StarRatingComponent = ({ inputId }: { inputId: string }) => {
     if (input) input.value = val.toString();
   };
   return <StarRating rating={rating} setRating={handleSetRating} />;
+};
+
+const HeroNewsMural = ({ news, events, setActiveTab }: { news: News[], events: SchoolEvent[], setActiveTab: (tab: string) => void }) => {
+  const [index, setIndex] = useState(0);
+  
+  const muralItems = useMemo(() => {
+    return [
+      ...news.map(n => ({ ...n, type: 'news' as const, description: n.content })),
+      ...events.filter(e => e.image_url).map(e => ({ ...e, type: 'event' as const }))
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [news, events]);
+
+  useEffect(() => {
+    if (muralItems.length <= 3) return;
+    const timer = setInterval(() => {
+      setIndex(prev => (prev + 1) % muralItems.length);
+    }, 8000);
+    return () => clearInterval(timer);
+  }, [muralItems.length]);
+
+  const displayItems = useMemo(() => {
+    if (muralItems.length === 0) return [];
+    if (muralItems.length <= 3) return muralItems;
+    const items = [...muralItems, ...muralItems];
+    return items.slice(index, index + 3);
+  }, [muralItems, index]);
+
+  if (muralItems.length === 0) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-white/50 border-2 border-dashed border-white/20 rounded-3xl p-8">
+        <Newspaper className="w-12 h-12 mb-4 opacity-50" />
+        <p className="text-center text-sm">Cadastre as notícias e eventos no painel Admin para exibir o mural.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn(
+      "grid gap-4 h-[500px] md:h-[600px] xl:h-[500px]",
+      muralItems.length === 1 ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
+    )}>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={displayItems[0]?.id + displayItems[0]?.type}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 20 }}
+          className="relative rounded-2xl overflow-hidden cursor-pointer group shadow-2xl"
+          onClick={() => setActiveTab(displayItems[0]?.type === 'news' ? 'noticias' : 'eventos')}
+        >
+          <img src={displayItems[0]?.image_url || "https://picsum.photos/seed/news1/800/600"} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" referrerPolicy="no-referrer" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
+          <div className="absolute top-4 left-4">
+            <span className={cn(
+              "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-white shadow-lg",
+              displayItems[0]?.type === 'news' ? "bg-red-600" : "bg-blue-600"
+            )}>
+              {displayItems[0]?.type === 'news' ? "Notícia" : "Evento"}
+            </span>
+          </div>
+          <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full">
+            <div className="w-12 h-1 bg-red-500 mb-4 rounded-full"></div>
+            <h3 className="text-xl md:text-2xl lg:text-3xl font-bold text-white leading-tight mb-2 drop-shadow-md">
+              {displayItems[0]?.title}
+            </h3>
+            <div className="text-white/80 text-sm md:text-base line-clamp-2 md:line-clamp-3 prose prose-invert prose-sm">
+                <Markdown>{displayItems[0]?.description || ''}</Markdown>
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+
+      {muralItems.length > 1 && (
+        <div className="flex flex-col gap-4 h-full">
+          <AnimatePresence mode="popLayout">
+            {displayItems.slice(1, 3).map((n, i) => (
+              <motion.div
+                key={n.id + n.type}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ delay: i * 0.1 }}
+                className="relative flex-1 rounded-2xl overflow-hidden cursor-pointer group shadow-2xl"
+                onClick={() => setActiveTab(n.type === 'news' ? 'noticias' : 'eventos')}
+              >
+                <img src={n.image_url || `https://picsum.photos/seed/item${i}/800/600`} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
+                <div className="absolute top-3 left-3">
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider text-white shadow-md",
+                    n.type === 'news' ? "bg-red-600" : "bg-blue-600"
+                  )}>
+                    {n.type === 'news' ? "Notícia" : "Evento"}
+                  </span>
+                </div>
+                <div className="absolute bottom-0 left-0 p-5 md:p-6 w-full">
+                  <div className="w-10 h-1 bg-red-500 mb-3 rounded-full"></div>
+                  <h3 className="text-lg md:text-xl font-bold text-white leading-tight mb-1 drop-shadow-md">
+                    {n.title}
+                  </h3>
+                  <div className="text-white/80 text-xs md:text-sm line-clamp-2 prose prose-invert prose-sm">
+                    <Markdown>{n.description || ''}</Markdown>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      )}
+    </div>
+  );
 };

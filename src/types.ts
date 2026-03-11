@@ -14,6 +14,7 @@ export interface SchoolEvent {
   title: string;
   description: string;
   date: string;
+  image_url?: string;
 }
 
 export interface Evaluation {
