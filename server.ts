@@ -95,14 +95,23 @@ async function initDb() {
   }
 }
 
-async function startServer() {
-  await initDb();
-  console.log("Database initialized successfully!");
+const app = express();
+app.use(express.json({ limit: '10mb' }));
 
-  const app = express();
-  const PORT = 3000;
+let dbInitPromise: Promise<void> | null = null;
+app.use(async (req, res, next) => {
+  if (!req.path.startsWith('/api')) return next();
+  try {
+    if (!dbInitPromise) dbInitPromise = initDb();
+    await dbInitPromise;
+    next();
+  } catch (e) {
+    console.error("DB Error:", e);
+    res.status(500).json({ error: "Failed to connect to database" });
+  }
+});
 
-  app.use(express.json({ limit: '10mb' }));
+const PORT = process.env.PORT || 3000;
 
   // API Routes
   app.get("/api/news", async (req, res) => {
@@ -380,22 +389,27 @@ async function startServer() {
   });
 
   // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
+  if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
+    (async () => {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+      
+      app.listen(PORT, "0.0.0.0", () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+      });
+    })();
+  } else if (!process.env.VERCEL) {
+    // Local production build serving
     app.use(express.static(path.join(__dirname, "dist")));
     app.get("*", (req, res) => {
       res.sendFile(path.join(__dirname, "dist", "index.html"));
     });
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
-}
-
-startServer().catch(console.error);
+export default app;
