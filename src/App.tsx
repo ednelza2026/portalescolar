@@ -1197,8 +1197,11 @@ export default function App() {
 
                     {/* News Grid Area */}
                     <div className="w-full lg:w-2/3 xl:w-3/4">
-                      {news.length >= 2 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[500px] md:h-[600px] xl:h-[500px]">
+                      {news.length >= 1 ? (
+                        <div className={cn(
+                          "grid gap-4 h-[500px] md:h-[600px] xl:h-[500px]",
+                          news.length === 1 ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
+                        )}>
                           {/* Main Left Card */}
                           <div
                             className="relative rounded-2xl overflow-hidden cursor-pointer group shadow-2xl"
@@ -1218,27 +1221,29 @@ export default function App() {
                           </div>
 
                           {/* Right Column Stack */}
-                          <div className="flex flex-col gap-4 h-full">
-                            {news.slice(1, 3).map((n, i) => (
-                              <div
-                                key={i}
-                                className="relative flex-1 rounded-2xl overflow-hidden cursor-pointer group shadow-2xl"
-                                onClick={() => setActiveTab('noticias')}
-                              >
-                                <img src={n.image_url || `https://picsum.photos/seed/news${i + 2}/800/600`} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" referrerPolicy="no-referrer" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
-                                <div className="absolute bottom-0 left-0 p-5 md:p-6 w-full">
-                                  <div className="w-10 h-1 bg-red-500 mb-3 rounded-full"></div>
-                                  <h3 className="text-lg md:text-xl font-bold text-white leading-tight mb-1 drop-shadow-md">
-                                    {n.title}
-                                  </h3>
-                                  <p className="text-white/80 text-xs md:text-sm line-clamp-2">
-                                    {n.content}
-                                  </p>
+                          {news.length > 1 && (
+                            <div className="flex flex-col gap-4 h-full">
+                              {news.slice(1, 3).map((n, i) => (
+                                <div
+                                  key={i}
+                                  className="relative flex-1 rounded-2xl overflow-hidden cursor-pointer group shadow-2xl"
+                                  onClick={() => setActiveTab('noticias')}
+                                >
+                                  <img src={n.image_url || `https://picsum.photos/seed/news${i + 2}/800/600`} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" referrerPolicy="no-referrer" />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
+                                  <div className="absolute bottom-0 left-0 p-5 md:p-6 w-full">
+                                    <div className="w-10 h-1 bg-red-500 mb-3 rounded-full"></div>
+                                    <h3 className="text-lg md:text-xl font-bold text-white leading-tight mb-1 drop-shadow-md">
+                                      {n.title}
+                                    </h3>
+                                    <p className="text-white/80 text-xs md:text-sm line-clamp-2">
+                                      {n.content}
+                                    </p>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
-                          </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="h-full flex flex-col items-center justify-center text-white/50 border-2 border-dashed border-white/20 rounded-3xl p-8">
