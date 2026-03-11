@@ -38,7 +38,7 @@ import {
   Edit2
 } from "lucide-react";
 import { QRCodeSVG } from 'qrcode.react';
-import { SchoolEvent, News, Evaluation, Sponsor } from "./types";
+import { SchoolEvent, News, Evaluation, Sponsor, SchoolSettings } from "./types";
 import { motion, AnimatePresence } from 'motion/react';
 import {
   BarChart,
@@ -60,7 +60,7 @@ import {
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import Markdown from 'react-markdown';
-import { News, SchoolEvent, Evaluation, SchoolSettings, Sponsor } from './types';
+
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
